@@ -1,0 +1,141 @@
+---
+name: asrgrab
+description: 在 Windows 11 上把系统声音、麦克风或视频/音频文件里的对话逐字转写成文字并带说话人（角色）分离，输出 Markdown 与 JSON。全程本机离线运行（NAudio 加 sherpa-onnx），不依赖云端 API。适用于边看抖音或 B站或会议视频边抓取字幕、批量转写本地媒体、区分谁说了什么、本地隐私语音转写、把网页视频变成文字稿。当用户要求抓取视频字幕、转写视频对话、角色分离纪要、本地语音转写、隐私不联网转录时启用本技能。
+agent_created: true
+---
+
+# asrgrab — 本地逐字转写与角色分离（AI Agent 优先）
+
+asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写，基于 NAudio（WASAPI 采集）
+与 sherpa-onnx（离线 ASR + 说话人分离）实现。它在用户机器上把音视频内容实时或离线转成
+带角色标签的文字稿，全程不上传任何服务器。
+
+## 何时使用
+
+- 用户在网页看抖音、B站、YouTube 等视频，想要逐字抓取对话并区分说话人；
+- 需要把本地视频 / 音频文件转写成带时间轴、带角色的文字稿；
+- 要求“本地、隐私、不联网”的语音转写（不调用云端识别 API）；
+- 需要一份 JSON 结构化的转写结果供 Agent 继续处理（纪要、摘要、问答）。
+
+不要用于：要求极高准确率且拒绝任何同音字/专名误差的场景（离线小模型会有机器速记误差），
+或需要把转写结果实时回流到远端服务的场景。
+
+## 安装到 WorkBuddy（技能安装）
+
+本技能分两部分分发，请同时获取：
+
+1. **技能包（本 zip）**：包含 `SKILL.md`、说明与辅助脚本，**不含可执行二进制**。
+2. **运行时包 `asrgrab-runtime.zip`**（win-x64 自包含，约 75MB，解压后约 180MB）：需另行获取并解压到技能目录的 `bin\`。
+
+**安装步骤**
+
+1. 安装技能包：从 SKILLHUB / 市场一键安装，或把本 zip 解压到任一技能目录：
+   - 用户级（所有项目可用）：`%USERPROFILE%\.workbuddy\skills\asrgrab\`
+   - 项目级（仅当前项目）：`<项目根>\.workbuddy\skills\asrgrab\`
+2. 获取运行时：把 `asrgrab-runtime.zip` 的内容解压到上述技能目录的 `bin\` 下，
+   使 `bin\asrgrab.exe` 存在。（运行时包随本技能一同分发；若未随附，请从发布页获取。）
+3. 验证：运行 `bin\asrgrab.exe doctor --human`，确认 `ok=true`。
+
+安装完成后，WorkBuddy 在检测到相关诉求（见「何时使用」）时会自动加载本技能。
+
+## 首次配置（开箱即用）
+
+1. **系统要求**：Windows 11（x64）。运行时包已自带 .NET 8，**无需额外安装 .NET**。
+2. **运行时已就位**：确认 `bin\asrgrab.exe` 存在（见上方安装步骤）。若缺失，先获取并解压 `asrgrab-runtime.zip`。
+3. **模型自动就绪（无需手动准备）**：转写所需的离线 ASR 模型由工具在**首次运行时自动准备**
+   （仅首次需联网拉取本地模型，约 125MB，内置多镜像回退），准备完成即完全离线。
+   无需事前任何操作；如需在首次转写前提前准备，可运行 `bin\asrgrab.exe models --download --human`。
+4. **（可选）ffmpeg**：仅当需要用 `transcribe` 转写非 wav 的视频/音频时才需要。
+   安装：`winget install ffmpeg` 或 `scoop install ffmpeg`。
+5. **（可选）环境变量**：
+   - `ASRGRAB_MODELS`：自定义模型目录（默认 `.\models`）。
+   - `ASRGRAB_HOME`：自定义状态/会话目录（默认 `~\.asrgrab`）。
+6. **（可选）Windows 隐私**：若使用「麦克风」等输入设备音源，请在
+   `设置 → 隐私和安全性 → 麦克风` 中允许应用访问；`loopback`（系统声音）无需此项。
+
+> 验证安装：运行 `bin\asrgrab.exe doctor --human`，确认 `ok=true` 且 `sources` 列出了音源、
+> `asr_ready` 在模型准备就绪后为 `true`。
+
+## 环境与运行
+
+本技能的 Windows 原生二进制以独立 **运行时包 `asrgrab-runtime.zip`** 形式分发（不打包进技能 zip），
+解压到 `bin\` 后即可运行，首次使用会自动准备模型。
+
+1. 定位二进制：`bin/asrgrab.exe`（win-x64 自包含发布，由运行时包提供）。
+2. 在任意工作目录运行（建议新建一个工作目录，模型与转录稿会落在那里）：
+   `bin\asrgrab.exe doctor --human` 确认环境。
+
+> 提示：转写较重，优先在用户机器上执行，不要在本会话沙箱里贸然跑全流程。
+> 先跑 `doctor` 确认环境，再跑 `devices` 选音源。
+> 注意 `bin/asrgrab.exe` 是相对技能目录的路径，调用时请使用绝对路径或先 `cd` 到合适工作目录。
+
+## 输出约定（Agent 契约）
+
+- 默认输出为 **JSON**：一次性命令输出单行 JSON；`start` / `transcribe` 流式输出 **JSONL**（每行一个事件）。
+- 人类可读信息（进度、表格）走 **stderr**；加 `--human` 时 stderr 为主要输出，stdout 仍保持 JSON/JSONL 不污染。
+- 非交互场景（stdin 非 TTY，或显式 `--non-interactive`）：不会弹交互选择，`--source` 缺省使用默认系统声音。
+- 退出码：0 OK、2 USAGE、3 SOURCE、4 BUSY、5 DEPENDENCY、6 ENGINE、7 AUDIO。Agent 据退出码判断成败。
+
+## 命令速查
+
+| 命令 | 作用 |
+|---|---|
+| `asrgrab schema` | 输出机器可读契约（字段、命令、示例），Agent 首读 |
+| `asrgrab doctor` | 环境自检（.NET / NAudio / sherpa 原生库 / ffmpeg / 音源 / 模型） |
+| `asrgrab devices` | 枚举音源（OBS 式：loopback 系统声音 / input 输入设备） |
+| `asrgrab start` | 开始抓取并实时转写；`--record-only` 只录音 |
+| `asrgrab stop` | 停止当前会话 |
+| `asrgrab status --tail N` | 查状态 + 最近 N 句 |
+| `asrgrab transcribe <文件/目录>` | 离线转写（视频/音频，自动抽音轨） |
+| `asrgrab models` | 查看 / 准备本地模型（首次自动） |
+| `asrgrab demo` | 生成示例转写（无需模型） |
+
+### start 常用参数
+
+- `--source <编号|id|名称>`：音源；支持序号、设备 id、名称子串（如 `0`、`loopback:0`、`Realtek`）。
+- `--chunk <秒>`：每多少秒聚合转写一次（默认 12，调小更实时但更费算力）。
+- `--model small|full|sensevoice`：small 默认（78MB，中文够用）；full 更准（约 1GB）；sensevoice 多语种。
+- `--no-diarize`：关闭说话人分离（不标角色）。
+- `--num-speakers <n>`：约束说话人数量，减少过碎聚类。
+- `--record-only --wav <path> --max-seconds <n>`：只录不转，存 wav。
+- `--detach`：后台守护模式运行，立即返回会话 id；用 `status` / `stop` 控制。
+
+### transcribe 常用参数
+
+- 位置参数：文件或目录（目录递归转写全部媒体）。
+- `--out <md|dir>`：输出目标；`--no-diarize`、`--num-speakers`、`--models-dir`。
+
+## Agent 推荐流程（实时抓取网页视频）
+
+```
+asrgrab doctor                              # 确认 asr_ready / capture_ready
+asrgrab devices                             # 取 sources[].index（loopback 为系统声音）
+asrgrab start --source <idx> --chunk 8 --detach   # 后台抓取，日志不进对话，省 token
+asrgrab status --tail 20                    # 轮询进度
+asrgrab stop                                # 停止并落稿
+```
+
+- 实时转写写两份：`transcript_<id>.md`（人读）、`transcript_<id>.json`（Agent 读，含 meta + segments[]）。
+- 后台模式下转写事件写入 `~/.asrgrab/sessions/<id>/` 下，不在对话里刷屏；Agent 只读 `status --tail` 与最终 md。
+- 切稿/裁剪：用 `tools/make_deliverable.py <json> <out.md> [--cut-ms N] [--map 角色A=姓名]` 按时间切点生成干净出稿（`--cut-ms` 截断该毫秒之后的内容，`--map` 重命名说话人，均可重复/省略）。
+
+## 输出示例
+
+Markdown：
+
+```markdown
+## 转写记录
+
+[00:00 - 00:03] 角色A：大家好，今天我们来聊……
+[00:03 - 00:07] 角色B：我觉得这个方案……
+```
+
+JSON segment 字段：`start_ms`、`end_ms`、`speaker`、`text`。
+
+## 限制（如实说明）
+
+- 说话人编号是自动聚类（角色 A/B/C…），不自动对应真人姓名，跨片段可能变号；可用 `--num-speakers` 约束。
+- 离线小模型为机器速记，专名/数字/同音字可能误识；要求高精度用 `--model full` 或事后校对。
+- 逐句落盘而非逐字弹出：默认每 `--chunk` 秒转一次。
+- `loopback` 抓默认输出设备的系统声音；多声卡需把目标设备设为默认或选对应 loopback 源。
+- 仅 Windows 11 / .NET 8 运行；首次运行会自动准备模型（仅首次联网），之后完全离线。
