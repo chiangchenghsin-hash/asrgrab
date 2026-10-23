@@ -25,14 +25,14 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
 本技能分两部分分发，请同时获取：
 
 1. **技能包（本 zip）**：包含 `SKILL.md`、说明与辅助脚本，**不含可执行二进制**。
-2. **运行时包 `asrgrab-runtime.zip`**（win-x64 自包含，约 75MB，解压后约 180MB）：需另行获取并解压到技能目录的 `bin\`。
+2. **运行时包 `asrgrab-runtime-win-x64.zip`**（**Windows 11 x64 专用**；win-x64 自包含，约 75MB，解压后约 180MB）：需另行获取并解压到技能目录的 `bin\`。
 
 **安装步骤**
 
 1. 安装技能包：从 SKILLHUB / 市场一键安装，或把本 zip 解压到任一技能目录：
    - 用户级（所有项目可用）：`%USERPROFILE%\.workbuddy\skills\asrgrab\`
    - 项目级（仅当前项目）：`<项目根>\.workbuddy\skills\asrgrab\`
-2. 获取运行时：把 `asrgrab-runtime.zip` 的内容解压到上述技能目录的 `bin\` 下，
+2. 获取运行时：把 `asrgrab-runtime-win-x64.zip` 的内容解压到上述技能目录的 `bin\` 下，
    使 `bin\asrgrab.exe` 存在。（运行时包随本技能一同分发；若未随附，请从发布页获取。）
 3. 验证：运行 `bin\asrgrab.exe doctor --human`，确认 `ok=true`。
 
@@ -41,7 +41,7 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
 ## 首次配置（开箱即用）
 
 1. **系统要求**：Windows 11（x64）。运行时包已自带 .NET 8，**无需额外安装 .NET**。
-2. **运行时已就位**：确认 `bin\asrgrab.exe` 存在（见上方安装步骤）。若缺失，先获取并解压 `asrgrab-runtime.zip`。
+2. **运行时已就位**：确认 `bin\asrgrab.exe` 存在（见上方安装步骤）。若缺失，先获取并解压 `asrgrab-runtime-win-x64.zip`。
 3. **模型自动就绪（无需手动准备）**：转写所需的离线 ASR 模型由工具在**首次运行时自动准备**
    （仅首次需联网拉取本地模型，约 125MB，内置多镜像回退），准备完成即完全离线。
    无需事前任何操作；如需在首次转写前提前准备，可运行 `bin\asrgrab.exe models --download --human`。
@@ -58,7 +58,7 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
 
 ## 环境与运行
 
-本技能的 Windows 原生二进制以独立 **运行时包 `asrgrab-runtime.zip`** 形式分发（不打包进技能 zip），
+本技能的 Windows 原生二进制（仅适配 Windows 11 x64）以独立 **运行时包 `asrgrab-runtime-win-x64.zip`** 形式分发（不打包进技能 zip），
 解压到 `bin\` 后即可运行，首次使用会自动准备模型。
 
 1. 定位二进制：`bin/asrgrab.exe`（win-x64 自包含发布，由运行时包提供）。
@@ -117,7 +117,7 @@ asrgrab stop                                # 停止并落稿
 
 - 实时转写写两份：`transcript_<id>.md`（人读）、`transcript_<id>.json`（Agent 读，含 meta + segments[]）。
 - 后台模式下转写事件写入 `~/.asrgrab/sessions/<id>/` 下，不在对话里刷屏；Agent 只读 `status --tail` 与最终 md。
-- 切稿/裁剪：用 `tools/make_deliverable.py <json> <out.md> [--cut-ms N] [--map 角色A=姓名]` 按时间切点生成干净出稿（`--cut-ms` 截断该毫秒之后的内容，`--map` 重命名说话人，均可重复/省略）。
+- 切稿/裁剪：用 `tools/make_deliverable.py <json> <out.md> [--cut-ms N] [--map 旧=新] [--title 标题] [--source 文本] [--summary-file 文件] [--gap-ms N]` 生成干净出稿。**切点、姓名、标题、来源、提要全部由参数提供，脚本无任何硬编码视频内容**（`--cut-ms` 截断该毫秒之后的片段，`--map` 重命名说话人，均可重复/省略；不传则保留全部、说话人用原始聚类标签）。
 
 ## 输出示例
 

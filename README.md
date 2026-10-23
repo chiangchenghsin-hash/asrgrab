@@ -27,13 +27,13 @@ asrgrab 让你**边看边抓**：选一个音源（类 OBS 的 loopback / 输入
 要求：Windows 11（x64）。本作品分两部分分发：
 
 - **技能包**（本仓库 / 技能 zip）：`SKILL.md`、说明与辅助脚本，**不含二进制**；
-- **运行时包 `asrgrab-runtime.zip`**（win-x64 self-contained，约 75MB，解压后约 180MB）：需另行获取并解压到技能目录的 `bin\`。
+- **运行时包 `asrgrab-runtime-win-x64.zip`**（**Windows 11 x64 专用**，self-contained，约 75MB，解压后约 180MB）：需另行获取并解压到技能目录的 `bin\`。
 
 **方式一：作为 WorkBuddy 技能安装（推荐）**
 1. 将技能包解压到技能目录：
    - 用户级（所有项目可用）：`%USERPROFILE%\.workbuddy\skills\asrgrab\`
    - 项目级（仅当前项目）：`<项目根>\.workbuddy\skills\asrgrab\`
-2. 把 `asrgrab-runtime.zip` 解压到该目录的 `bin\` 下，使 `bin\asrgrab.exe` 存在。
+2. 把 `asrgrab-runtime-win-x64.zip` 解压到该目录的 `bin\` 下，使 `bin\asrgrab.exe` 存在。
 3. `bin\asrgrab.exe doctor --human` 验证。
 
 **方式二：独立使用（命令行）**
@@ -153,7 +153,7 @@ asrgrab stop
 [00:03 - 00:07] 角色B：我觉得这个方案……
 ```
 
-切稿/裁剪：`tools/make_deliverable.py <json> <out.md> [--cut-ms N] [--map 角色A=姓名]` 生成干净出稿（`--cut-ms` 截断该毫秒之后的内容，`--map` 重命名说话人，均可重复/省略）。
+切稿/裁剪：`tools/make_deliverable.py <json> <out.md> [--cut-ms N] [--map 旧=新] [--title 标题] [--source 文本] [--summary-file 文件] [--gap-ms N]` 生成干净出稿。**切点、姓名、标题、来源、内容提要全部由参数/输入 meta 提供，脚本无任何硬编码视频内容**，可作通用工具分发（`--cut-ms` 截断该毫秒之后的片段，`--map` 重命名说话人，均可重复/省略；不传则保留全部内容、说话人用原始聚类标签）。
 
 ## 架构
 
@@ -176,7 +176,7 @@ Capture 线程 ──► 帧队列 ──► 聚合(--chunk 秒) ──► 推�
 
 ## 实测结果（本机 Windows 11）
 
-- 实时抓取抖音 35:46 投资人圆桌：累计 229 段、约 1.27 万字落稿，角色分离可用；
+- 实时抓取一段约 35 分钟的圆桌 / 访谈视频：累计 229 段、约 1.27 万字落稿，角色分离可用；
 - 说话人分离在 4 人官方测试音频上自动聚类正确，可用 `--num-speakers 4` 约束；
 - 系统静音时 loopback 不产音频（符合预期），播放即采。
 
