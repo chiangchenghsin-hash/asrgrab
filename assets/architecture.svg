@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2b6cb0"/>
+    </marker>
+    <style>
+      .box { fill:#ebf4ff; stroke:#2b6cb0; stroke-width:1.5; rx:8; }
+      .label { font-size:13px; fill:#1a365d; font-weight:600; }
+      .sub { font-size:10px; fill:#4a5568; }
+      .flow { stroke:#2b6cb0; stroke-width:2; fill:none; marker-end:url(#arrow); }
+      .out { fill:#e6fffa; stroke:#319795; stroke-width:1.5; }
+    </style>
+  </defs>
+
+  <!-- Source -->
+  <rect class="box" x="20" y="110" width="150" height="80" rx="8"/>
+  <text class="label" x="95" y="140" text-anchor="middle">音源</text>
+  <text class="sub" x="95" y="160" text-anchor="middle">系统声音 / 麦克风</text>
+  <text class="sub" x="95" y="176" text-anchor="middle">/ 视频·音频文件</text>
+
+  <!-- Capture -->
+  <rect class="box" x="200" y="110" width="150" height="80" rx="8"/>
+  <text class="label" x="275" y="140" text-anchor="middle">采集 · NAudio</text>
+  <text class="sub" x="275" y="160" text-anchor="middle">WASAPI loopback</text>
+  <text class="sub" x="275" y="176" text-anchor="middle">ffmpeg 抽轨 16k</text>
+
+  <!-- Aggregate -->
+  <rect class="box" x="380" y="110" width="150" height="80" rx="8"/>
+  <text class="label" x="455" y="140" text-anchor="middle">聚合</text>
+  <text class="sub" x="455" y="160" text-anchor="middle">按 --chunk 秒</text>
+  <text class="sub" x="455" y="176" text-anchor="middle">帧队列 → 推理队列</text>
+
+  <!-- ASR -->
+  <rect class="box" x="560" y="110" width="150" height="80" rx="8"/>
+  <text class="label" x="635" y="140" text-anchor="middle">识别 · sherpa-onnx</text>
+  <text class="sub" x="635" y="160" text-anchor="middle">paraformer 中文</text>
+  <text class="sub" x="635" y="176" text-anchor="middle">+ 说话人分离</text>
+
+  <!-- Output -->
+  <rect class="out" x="740" y="110" width="140" height="80" rx="8"/>
+  <text class="label" x="810" y="140" text-anchor="middle">输出</text>
+  <text class="sub" x="810" y="160" text-anchor="middle">Markdown</text>
+  <text class="sub" x="810" y="176" text-anchor="middle">+ JSON(角色/时间轴)</text>
+
+  <!-- flows -->
+  <line class="flow" x1="170" y1="150" x2="198" y2="150"/>
+  <line class="flow" x1="350" y1="150" x2="378" y2="150"/>
+  <line class="flow" x1="530" y1="150" x2="558" y2="150"/>
+  <line class="flow" x1="710" y1="150" x2="738" y2="150"/>
+
+  <!-- privacy banner -->
+  <rect x="20" y="235" width="860" height="40" rx="8" fill="#fff5f5" stroke="#e53e3e" stroke-width="1.2"/>
+  <text x="450" y="259" text-anchor="middle" font-size="13" fill="#c53030" font-weight="700">全程本机离线 · 音频与文字不出本机 · C#/.NET 8 原生 · 默认输出 JSON 供 AI Agent 调用</text>
+</svg>
