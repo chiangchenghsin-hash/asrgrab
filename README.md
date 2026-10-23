@@ -27,7 +27,7 @@ asrgrab 让你**边看边抓**：选一个音源（类 OBS 的 loopback / 输入
 要求：Windows 11（x64）。本作品分两部分分发：
 
 - **技能包**（本仓库 / 技能 zip）：`SKILL.md`、说明与辅助脚本，**不含二进制**；
-- **运行时包 `asrgrab-runtime-win-x64.zip`**（**Windows 11 x64 专用**，self-contained，约 75MB，解压后约 180MB）：需另行获取并解压到技能目录的 `bin\`。
+- **运行时包 `asrgrab-runtime-win-x64.zip`**（**Windows 11 x64 专用**，self-contained，约 75MB，解压后约 180MB）：需另行获取并解压到技能目录的 `bin\`。下载：<https://github.com/chiangchenghsin-hash/asrgrab/releases/tag/v0.1.0>
 
 **方式一：作为 WorkBuddy 技能安装（推荐）**
 1. 将技能包解压到技能目录：

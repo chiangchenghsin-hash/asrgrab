@@ -33,7 +33,7 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
    - 用户级（所有项目可用）：`%USERPROFILE%\.workbuddy\skills\asrgrab\`
    - 项目级（仅当前项目）：`<项目根>\.workbuddy\skills\asrgrab\`
 2. 获取运行时：把 `asrgrab-runtime-win-x64.zip` 的内容解压到上述技能目录的 `bin\` 下，
-   使 `bin\asrgrab.exe` 存在。（运行时包随本技能一同分发；若未随附，请从发布页获取。）
+   使 `bin\asrgrab.exe` 存在。（运行时包随本技能一同分发；若未随附，请从 Release 页获取：<https://github.com/chiangchenghsin-hash/asrgrab/releases/tag/v0.1.0>）
 3. 验证：运行 `bin\asrgrab.exe doctor --human`，确认 `ok=true`。
 
 安装完成后，WorkBuddy 在检测到相关诉求（见「何时使用」）时会自动加载本技能。
@@ -137,5 +137,5 @@ JSON segment 字段：`start_ms`、`end_ms`、`speaker`、`text`。
 - 说话人编号是自动聚类（角色 A/B/C…），不自动对应真人姓名，跨片段可能变号；可用 `--num-speakers` 约束。
 - 离线小模型为机器速记，专名/数字/同音字可能误识；要求高精度用 `--model full` 或事后校对。
 - 逐句落盘而非逐字弹出：默认每 `--chunk` 秒转一次。
-- `loopback` 抓默认输出设备的系统声音；多声卡需把目标设备设为默认或选对应 loopback 源。
+- `loopback` 抓默认输出设备的系统声音；多声卡需把目标设备设为默认或选对应 `loopback` 源。
 - 仅 Windows 11 / .NET 8 运行；首次运行会自动准备模型（仅首次联网），之后完全离线。
