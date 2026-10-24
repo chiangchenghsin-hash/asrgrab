@@ -87,6 +87,7 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
 | `asrgrab stop` | 停止当前会话 |
 | `asrgrab status --tail N` | 查状态 + 最近 N 句 |
 | `asrgrab transcribe <文件/目录>` | 离线转写（视频/音频，自动抽音轨） |
+| `asrgrab grab_url <url>` | URL 进、文字出：驱动点播页播放并实时转写，收尾必发 `grab_end`（可 `--notify-cmd` 回调） |
 | `asrgrab models` | 查看 / 准备本地模型（首次自动） |
 | `asrgrab demo` | 生成示例转写（无需模型） |
 
@@ -100,12 +101,47 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
 - `--record-only --wav <path> --max-seconds <n>`：只录不转，存 wav。
 - `--detach`：后台守护模式运行，立即返回会话 id；用 `status` / `stop` 控制。
 
+### grab_url 常用参数
+
+- `<url>`：http(s) 点播视频页（v1 不支持直播流；iframe 内嵌播放器不保证，见「限制」）。
+- `--max-seconds N`：保险丝（**全程墙钟**，从命令启动算起）；结束条件为 `ended` ∨ 切片（防自动连播串台）∨ 保险丝，先到先停。
+- `--video-timeout N`：等 video 就绪超时（默认 30s）；首次需登录的站点用 `--keep-browser` 手动登录后重跑。
+- `--notify-cmd "<命令>"`：收尾执行一次，环境变量 `ASRGRAB_EXIT`/`ASRGRAB_SESSION_ID`/`ASRGRAB_OUT_MD`/`ASRGRAB_OUT_JSON`；失败不影响主退出码。
+- `--keep-browser`：收尾不关浏览器（自开实例也保留）。
+- `--port <n>` / `--models-dir <dir>`：CDP 调试端口（默认 9222）/ 模型目录（同 `ASRGRAB_MODELS` 语义）。
+- 收尾事件 `grab_end`：`end_reason: ended|clip-switch|max-seconds|error` + `exit_code`/`session_id`/`out_file`/`elapsed_s`/`segments`/`error`——分析层的标准交接点。用户主动停止（Ctrl+C / `asrgrab stop`）exit=0；会话故障 exit≠0。
+
 ### transcribe 常用参数
 
 - 位置参数：文件或目录（目录递归转写全部媒体）。
-- `--out <md|dir>`：输出目标；`--no-diarize`、`--num-speakers`、`--models-dir`。
+- `--out <md|dir>`：输出目标；`--model small|full|sensevoice`（两遍转写：落稿后 `--model full` 精转对照）；`--no-diarize`、`--num-speakers`、`--models-dir`。
+- 转写模式默认 **wav 常留**（`session_<id>.wav`）——为精转对照与重听锚点留本。
 
-## Agent 推荐流程（实时抓取网页视频）
+## 一键抓取（推荐首选）：grab_url
+
+```
+grab_url <抖音/视频链接>                  # 全程无人值守，出稿即停
+grab_url <链接> --max-seconds 60          # 冒烟（截断录制）
+grab_url <链接> --num-speakers 3 --label 名称 --out-dir DIR
+```
+
+内置 CDP 驱动 Edge（调试口 9222 + `--remote-allow-origins=*` + autoplay 豁免），
+顺序写死：开 Edge → 打开视频 → **暂停并 seek 0**（自动播放抢跑段一律清零）→
+`start --detach`（输出重定向文件，**绝不接管道**）→ 轮询 status 至 running →
+**再 play** → 等 ended → stop → 出稿。产出一包（落 `--out-dir`，默认 `./transcripts`）：
+
+- `transcript_<id>.md/.json` 实时速报稿（small）+ `session_<id>.wav` 原始录音
+- `transcript_<id>_full.md` 精转稿（`transcribe --model full`；数字/日期/专名以它为准，
+  与速报不一致的面值自动标 ⚠️ 速记疑误候选）
+- `transcript_<id>_numbers.json/.md` 数字/日期待核清单（面值+上下文+时间戳——
+  逐条判真假时「数字归属尺」的核查工单）
+- `transcript_<id>_context.json` 页面语境快照（标题/主页挂链/正文摘录）
+- `transcript_<id>_event.json` **完成事件**（ok/steps/files/exit_code）——无人值守交接点
+- `ledgers/<账号>.jsonl` 账号级抓取台账（断言×日期锚点对齐的底账）
+
+退出码：0 成功 / 2 参数 / 3 音源 / 6 引擎 / 7 页面视频未就绪 / 8 超时。
+
+## Agent 手动流程（逐命令，实时抓取网页视频）
 
 ```
 asrgrab doctor                              # 确认 asr_ready / capture_ready
@@ -124,7 +160,7 @@ asrgrab stop                                # 停止并落稿
 - **不要给 `start --detach` 接管道**（`| tee` 等）：stdout 是长开的 JSONL 流，管道永不收口，会超时失败。用独立后台任务 + 输出重定向到文件，不要链式接后续命令。
 - **顺序：先暂停播放 → `start` → 等采集 ready → 再播放**；否则开头会录到半截内容作废重录。
 - **完成通知**：CLI 无推送机制（只有 `status` / `stop`）；「跑完→分析」交接点用后台任务等待或轮询 `status` 自己搭。
-- **URL 进文字出**：本工具不下载视频、不驱动浏览器；URL 场景需外部先驱动播放（如 CDP）再交采集。能落成本地文件的，直接 `transcribe <文件>` 一条命令到底。
+- **URL 进文字出**：本工具不下载视频、不驱动浏览器；URL 场景需外部先驱动播放（如 CDP）再交采集。能落成本地文件的，直接 `transcribe <文件>` 一条命令到底。**一键方案 = `grab_url`**（内置 CDP 驱动 + 上述全部纪律，见上节）。
 
 ## 输出示例
 
@@ -146,3 +182,4 @@ JSON segment 字段：`start_ms`、`end_ms`、`speaker`、`text`。
 - 逐句落盘而非逐字弹出：默认每 `--chunk` 秒转一次。
 - `loopback` 抓默认输出设备的系统声音；多声卡需把目标设备设为默认或选对应 loopback 源。
 - 仅 Windows 11 / .NET 8 运行；首次运行会自动准备模型（仅首次联网），之后完全离线。
+- `grab_url` v1 不支持直播流（`duration=Infinity` 直接报错）；iframe 内嵌播放器只探测顶层 document，可能探不到。

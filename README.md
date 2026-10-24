@@ -86,6 +86,7 @@ bin\asrgrab.exe stop                   :: 停止，产出 transcripts/transcript
 | `asrgrab stop` | 停止当前会话 |
 | `asrgrab status --tail 20` | 状态 + 最近 20 句 |
 | `asrgrab transcribe <文件/目录>` | 离线转写（视频/音频，自动抽音轨） |
+| `asrgrab grab_url <url>` | URL 进、文字出：一条命令到底（开浏览器→对齐→采集→收尾通知） |
 | `asrgrab models` | 查看 / 准备本地模型 |
 | `asrgrab demo` | 生成示例转写（无需模型） |
 | `asrgrab doctor` | 环境自检 |
@@ -187,6 +188,7 @@ Capture 线程 ──► 帧队列 ──► 聚合(--chunk 秒) ──► 推�
 - **`start --detach` 不要接管道**（`| tee` 等）：stdout 是长开的 JSONL 流，管道永不收口，最终超时失败。正确姿势是后台任务 + 输出重定向到文件。
 - **顺序别反**：先暂停视频 → `start` → 等采集 ready → 再播放。页面一开自动播就开录，开头几分钟会录到半截内容。
 - **没有「跑完通知」**：只有 `status` 轮询与 `stop`；需要「执行完通知我再分析」的交接点，用后台任务 wait/stop 自己搭。
+- 要「URL 进、文字出」用 `asrgrab grab_url <url>`（含 `--notify-cmd` 回调与 `grab_end` 交接事件）；直播流 v1 不支持，本地文件用 `transcribe`。
 
 另外：本工具只做采集与转写，**不下载视频、不驱动浏览器**。URL 场景需外部先驱动播放再采集；能下载成文件的（如网页新闻）直接 `transcribe`，一条命令出稿。
 
