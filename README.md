@@ -108,7 +108,7 @@ asrgrab transcribe "D:\videos" --model full          :: 用高精度大模型
 **默认就是 JSON**，人类可读加 `--human`。
 
 - 一次性命令（`devices`/`status`/`stop`/`doctor`/`schema`）→ **单行 JSON**
-- 流式命令（`start`/`transcribe`）→ **JSONL**，一行一个事件
+- 流式命令（`start`/`transcribe`/`grab_url`）→ **JSONL**，一行一个事件
 - 进度/人类信息走 **stderr**，不污染 stdout
 - `stdin` 非 TTY 时**不会弹交互选择**，`--source` 缺省 = 默认系统声音
 - 退出码：`0 OK / 2 USAGE / 3 SOURCE / 4 BUSY / 5 DEPENDENCY / 6 ENGINE / 7 AUDIO`
@@ -190,7 +190,7 @@ Capture 线程 ──► 帧队列 ──► 聚合(--chunk 秒) ──► 推�
 - **没有「跑完通知」**：只有 `status` 轮询与 `stop`；需要「执行完通知我再分析」的交接点，用后台任务 wait/stop 自己搭。
 - 要「URL 进、文字出」用 `asrgrab grab_url <url>`（含 `--notify-cmd` 回调与 `grab_end` 交接事件）；直播流 v1 不支持，本地文件用 `transcribe`。
 
-另外：本工具只做采集与转写，**不下载视频、不驱动浏览器**。URL 场景需外部先驱动播放再采集；能下载成文件的（如网页新闻）直接 `transcribe`，一条命令出稿。
+另外：`start` / `transcribe` 只做采集与转写，**不下载视频、不驱动浏览器**；「URL 进、文字出」的浏览器驱动由 `grab_url` 内置（CDP），见上条。
 
 ## 限制（诚实说明）
 

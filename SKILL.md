@@ -87,7 +87,7 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
 | `asrgrab stop` | 停止当前会话 |
 | `asrgrab status --tail N` | 查状态 + 最近 N 句 |
 | `asrgrab transcribe <文件/目录>` | 离线转写（视频/音频，自动抽音轨） |
-| `asrgrab grab_url <url>` | URL 进、文字出：驱动点播页播放并实时转写，收尾必发 `grab_end`（可 `--notify-cmd` 回调） |
+| `asrgrab grab_url <url>` | URL 进、文字出：驱动点播页播放并实时转写，流程收尾必发 `grab_end`（可 `--notify-cmd` 回调） |
 | `asrgrab models` | 查看 / 准备本地模型（首次自动） |
 | `asrgrab demo` | 生成示例转写（无需模型） |
 
@@ -104,12 +104,13 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
 ### grab_url 常用参数
 
 - `<url>`：http(s) 点播视频页（v1 不支持直播流；iframe 内嵌播放器不保证，见「限制」）。
-- `--max-seconds N`：保险丝（**全程墙钟**，从命令启动算起）；结束条件为 `ended` ∨ 切片（防自动连播串台）∨ 保险丝，先到先停。
+- `--max-seconds N`：保险丝（**全程墙钟**，从命令启动算起）；结束条件为 `ended` ∨ 切片（防自动连播串台）∨ 保险丝，先到先停（同一拍多条件同时成立时优先级：ended > 切片 > 保险丝）。
 - `--video-timeout N`：等 video 就绪超时（默认 30s）；首次需登录的站点用 `--keep-browser` 手动登录后重跑。
 - `--notify-cmd "<命令>"`：收尾执行一次，环境变量 `ASRGRAB_EXIT`/`ASRGRAB_SESSION_ID`/`ASRGRAB_OUT_MD`/`ASRGRAB_OUT_JSON`；失败不影响主退出码。
 - `--keep-browser`：收尾不关浏览器（自开实例也保留）。
 - `--port <n>` / `--models-dir <dir>`：CDP 调试端口（默认 9222）/ 模型目录（同 `ASRGRAB_MODELS` 语义）。
-- 收尾事件 `grab_end`：`end_reason: ended|clip-switch|max-seconds|error` + `exit_code`/`session_id`/`out_file`/`elapsed_s`/`segments`/`error`——分析层的标准交接点。用户主动停止（Ctrl+C / `asrgrab stop`）exit=0；会话故障 exit≠0。
+- 采集流程启动后，收尾必发 `grab_end`：`end_reason: ended|clip-switch|max-seconds|error` + `exit_code`/`session_id`/`out_file`/`elapsed_s`/`segments`/`error`——分析层的标准交接点。用户主动停止（Ctrl+C / `asrgrab stop`）exit=0；会话故障 exit≠0。用户主动停止（Ctrl+C / `asrgrab stop`）时 `end_reason` 仍为 `error`，以 `exit_code=0` 判定为正常停止。预检失败（参数错/占用/无音源）不发 grab_end，直接返回 `ok:false` 错误 JSON 与退出码。
+- `--chunk` / `--model` / `--no-diarize` / `--num-speakers`：同 `start` 透传（聚合秒数 / small|full|sensevoice / 不分角色 / 约束人数）。
 
 ### transcribe 常用参数
 
@@ -118,6 +119,8 @@ asrgrab 是一个 Windows 11 原生的命令行工具，用 C# / .NET 8 编写�
 - 转写模式默认 **wav 常留**（`session_<id>.wav`）——为精转对照与重听锚点留本。
 
 ## 一键抓取（推荐首选）：grab_url
+
+> 注：本节指 `tools/grab_url.py` 编排脚本（Python），与上文 C# 内置 `asrgrab grab_url` 命令是**两套实现**；本节的退出码与产物仅适用于该脚本。
 
 ```
 grab_url <抖音/视频链接>                  # 全程无人值守，出稿即停
