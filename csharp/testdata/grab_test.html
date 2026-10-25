@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>grab_test</title></head>
+<body>
+<video id="v" width="320" height="180" controls></video>
+<script>
+// mode=ended（默认）：播完 a.wav 即 ended
+// mode=clip：a.wav 播 clip 秒后切到 b.wav（触发 clip-switch）
+// mode=live：覆写 duration=Infinity（验证直播拒绝）
+// mode=slow：延迟 2.5s 再设 src（模拟元数据加载中的 NaN duration，验证不被误判为直播）
+const q = new URLSearchParams(location.search);
+const mode = q.get("mode") || "ended";
+const clip = +(q.get("clip") || 3);
+const v = document.getElementById("v");
+if (mode === "live") {
+  Object.defineProperty(v, "duration", { get: () => Infinity });
+  v.src = "a.wav";
+} else if (mode === "slow") {
+  setTimeout(() => { v.src = "a.wav"; }, 2500);
+} else if (mode === "clip") {
+  v.src = "a.wav";
+  v.addEventListener("timeupdate", () => {
+    if (v.currentTime >= clip && !v.dataset.switched) {
+      v.dataset.switched = "1";
+      v.src = "b.wav";
+      v.play();
+    }
+  });
+} else {
+  v.src = "a.wav";
+}
+</script>
+</body>
+</html>

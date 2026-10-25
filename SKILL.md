@@ -186,3 +186,4 @@ JSON segment 字段：`start_ms`、`end_ms`、`speaker`、`text`。
 - `loopback` 抓默认输出设备的系统声音；多声卡需把目标设备设为默认或选对应 loopback 源。
 - 仅 Windows 11 / .NET 8 运行；首次运行会自动准备模型（仅首次联网），之后完全离线。
 - `grab_url` v1 不支持直播流（`duration=Infinity` 直接报错）；iframe 内嵌播放器只探测顶层 document，可能探不到。
+- 切片判定基于 `<video>` 的 `currentSrc` 变化：无 src/blob 的播放器（MSE/srcObject）不触发切片；广告→正片的 src 切换会被当作切片提前收尾。
